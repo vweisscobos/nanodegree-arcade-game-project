@@ -1,0 +1,97 @@
+body {
+    text-align: center;
+}
+
+.choose-char-popup {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 100vw;
+	padding: 40px;
+	background-color: white;
+	border-radius: 8px;
+	box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+}
+
+.choose-char-popup .choose-char-popup__char {
+	height: 171px;
+	width: 101px;
+	border-radius: 8px;
+}
+
+.choose-char-popup .choose-char-popup__char:hover {
+	border: solid 1px #999;
+}
+
+.choose-char-popup .choose-char-popup__char.boy{
+	background-image: url('../images/char-boy.png');
+}
+
+.choose-char-popup .choose-char-popup__char.cat-girl{
+	background-image: url('../images/char-cat-girl.png');
+}
+
+.choose-char-popup .choose-char-popup__char.horn-girl{
+	background-image: url('../images/char-horn-girl.png');
+}
+
+.choose-char-popup .choose-char-popup__char.pink-girl{
+	background-image: url('../images/char-pink-girl.png');
+}
+
+.choose-char-popup .choose-char-popup__char.princess-girl{
+	background-image: url('../images/char-princess-girl.png');
+}
+
+.choose-char-popup button {
+	background-color: transparent;
+	border: none;
+}
+
+canvas div {
+	height: 606px;
+	background-image: radial-gradient(red, transparent);
+}
+
+.game-over-popup {
+	position: fixed;
+	visibility: hidden;
+	width: 100vw;
+	height: 211px;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: white;
+	box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.5);
+}
+
+h1 {
+	font-family: sans-serif;
+	font-weight: normal;
+	color: #666;
+}
+
+.play-again-btn {
+	bottom: 20px;
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	border-radius: 8px;
+	border: solid 1px #999;
+	background-color: transparent;
+	padding: 5px 15px;
+	color: #666;
+	transition: all 0.2s;
+}
+
+.play-again-btn:hover {
+	color: white;
+	background-color: #999;
+}
+
+.score-display {
+	font-family: sans-serif;
+	font-size: 102%;
+	color: #666;
+}
