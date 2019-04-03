@@ -29,6 +29,4 @@ to the timeout and the blue gem slows down the enemies for a while
 
 ## Aknowledges
 
-
-
-
+Base code from https://github.com/udacity/frontend-nanodegree-arcade-game
