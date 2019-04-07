@@ -455,4 +455,112 @@ class Timeout {
     document.addEventListener('keyup', player.handleInput);
   };
 
+  /*
+   * Set the score message in the popup that appear in the end of the game.
+   * If the player have a score greater than 0, this number is displayed,
+   * otherwise the 'you loose' message appears
+   */
+  const setScoreDisplay = () => {
+    if (score.getScore() > 0) {
+      htmlScoreDisplay.innerText = 'You scored ' + score.getScore() + ' crosses';
+    } else {
+      htmlScoreDisplay.innerText = 'You loose';
+    }
+  };
+
+  const showCharSelector = () => {
+    htmlChooseCharPopup.style.visibility = 'visible';
+  };
+
+  const hideCharSelector = () => {
+    htmlChooseCharPopup.style.visibility = 'hidden';
+  };
+
+  const showGameOverPopup = () => {
+    htmlGameOverPopup.style.visibility = 'visible';
+  };
+
+  const hideGameOverPopup = () => {
+    htmlGameOverPopup.style.visibility = 'hidden';
+  };
+
+//  increase score by one and displays the 'awesome' message
+  const crossCompleted = () => {
+    score.increaseCrosses();
+    messages.newMessage('AWESOME', 125, 50);
+  };
+
+//  stop the game and ask if user wants to play again
+  const gameOver = () => {
+    document.removeEventListener('keyup', player.handleInput);
+    showGameOverPopup();
+    setScoreDisplay();
+    timeout.stop();
+  };
+
+//  Reduce enemies speed for 5 seconds
+  const reduceEnemySpeed = () => {
+    GLOBALS.isEnemySpeedReduced = true;
+
+    setTimeout(() => {
+      GLOBALS.isEnemySpeedReduced = false;
+    }, 5000);
+  };
+
+//  Increase 30 seconds to the timeout
+  const addTimeToTimeout = () => {
+    timeout.increaseTimeout(10);
+  };
+
+  /*
+   * Display message warning the player about the collision, put char at initial position
+   * and decrease score by one
+   */
+  const handleCollision = () => {
+    messages.newMessage('OUCH', player.getX(), player.getY());
+    player.reset();
+    score.decreaseCrosses();
+  };
+
+//  Iterates over all enemies and check if their collided with char
+  const checkCollisions = () => {
+    allEnemies.forEach(enemy => {
+      if (player.checkCollision(enemy)) {
+        handleCollision();
+      }
+    });
+  };
+
+  /* Check if there was collision between the player and the available gem
+   * if there was a collision, the gem effect is applied
+   */
+  const checkGemCollection = () => {
+    let {x, y} = gems.getGemCoordinates();
+
+    if (y !== player.getY()) return;
+    if (x === player.getX()) {
+      gems.gemCollected();
+    }
+  };
+
+//  Check for collisions, gem collection and update all entities
+  const update = () => {
+    checkGemCollection();
+    checkCollisions();
+    player.update();
+    allEnemies.forEach(enemy => enemy.update());
+    gems.update();
+    messages.update();
+  };
+
+//  Render all entities
+  const render = () => {
+    gems.render();
+    player.render();
+    allEnemies.forEach(enemy => enemy.render());
+    messages.render();
+    score.render();
+    timeout.render();
+  };
+
 })();
