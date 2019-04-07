@@ -155,3 +155,118 @@ class Gems {
     }
   };
 }
+
+/* Player class is responsible for all that concerns the char's moves and features.
+ * It handles the collision logic and also the player's keyboard inputs.
+ */
+class Player {
+
+  constructor() {
+    this.sprite = 'images/char-' + 'boy' + '.png';
+    this.x = 0;
+    this.y = 0;
+    this.reset();
+
+    this.handleInput = this.handleInput.bind(this);
+  }
+
+  getX() {
+    return this.x;
+  }
+
+  getY() {
+    return this.y;
+  }
+
+  update() {
+    if (this.y <= 0) {
+      this.reset();
+      GLOBALS.observer.publish(GLOBALS.eventTypes.CROSS_COMPLETED);
+    }
+  };
+
+  setChar(char) {
+    this.sprite = 'images/char-' + char + '.png';
+  };
+
+  render() {
+    GLOBALS.ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+  };
+
+  moveLeft() {
+    if (this.x - GLOBALS.columnWidth >= 0) this.x -= GLOBALS.columnWidth;
+  };
+
+  moveRight() {
+    if (this.x + GLOBALS.columnWidth <GLOBALS.columnWidth * GLOBALS.numOfEnemyColumns)
+      this.x += GLOBALS.columnWidth;
+  };
+
+  moveUp() {
+    this.y -= GLOBALS.lineHeight;
+  };
+
+  moveDown() {
+    if (this.y + GLOBALS.lineHeight < GLOBALS.heightAjust + GLOBALS.lineHeight * (GLOBALS.numOfEnemyColumns + 1))
+      this.y += GLOBALS.lineHeight;
+  };
+
+  handleInput(evt) {
+    switch(evt.code) {
+      case 'ArrowLeft':
+        this.moveLeft();
+        break;
+      case 'ArrowRight':
+        this.moveRight();
+        break;
+      case 'ArrowUp':
+        this.moveUp();
+        break;
+      case 'ArrowDown':
+        this.moveDown();
+        break;
+      default:
+        break;
+    }
+  };
+
+  /*
+   * Return char's final x position taking into account
+   * the empty space between the border of the png canvas and the char
+   */
+  getCorrectedFinalX() {
+    return this.x + GLOBALS.columnWidth - GLOBALS.charWidthAjust;
+  }
+
+  /*
+   * Return char's initial x position taking into account
+   * the empty space between the border of the png canvas and the char
+   */
+  getCorrectedInitialX() {
+    return this.x + GLOBALS.charWidthAjust;
+  }
+
+  checkCollision(entity) {
+    if (entity.getY() !== this.y) {
+      return;
+    }
+
+    //  if the char is between enemy boundaries, there is collision
+    let isCharInsideEntity = this.getCorrectedFinalX() > entity.getX() + entity.getWidth()
+      && this.getCorrectedInitialX() < entity.getX() + entity.getWidth();
+
+    //  if char's right side is inside enemy boundaries, there is collision
+    let isRightSideCollided = this.getCorrectedInitialX() < entity.getX() && this.getCorrectedFinalX() > entity.getX();
+
+    //  if char's left side is inside enemy boundaries, there is collision
+    let isLeftSideCollided = this.getCorrectedInitialX() > entity.getX()
+      && this.getCorrectedFinalX() < entity.getX() + entity.getWidth();
+
+    if (isCharInsideEntity || isRightSideCollided || isLeftSideCollided) return true
+  };
+
+  reset() {
+    this.y = GLOBALS.heightAjust + GLOBALS.lineHeight * 4;
+    this.x = GLOBALS.columnWidth * 2;
+  };
+}
