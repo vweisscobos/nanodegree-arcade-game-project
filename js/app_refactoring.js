@@ -599,4 +599,15 @@ class Timeout {
     render
   );
 
+  /*  When char is selected, the char is changed in the player class,
+   *  the char menu is hidden, and the timeout resets.
+   */
+  htmlChooseCharPopup.addEventListener('click', e => {
+    player.setChar(e.target.value);
+    hideCharSelector();
+    timeout.reset();
+  });
+
+  htmlPlayAgainBtn.addEventListener('click', init);
+
 })();
