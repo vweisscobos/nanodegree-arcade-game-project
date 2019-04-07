@@ -1,450 +1,595 @@
-//  initialize all shared constants
-const NUMBER_OF_ENEMIES = 8;
-const AVAILABLE_TIME = 150;
-const COLUMN_WIDTH = 101;
-const LINE_HEIGHT = 83;
-const HEIGHT_AJUST = 53; // fix the difference between the entities and the ground blocks vertical position
-const NUM_OF_ENEMY_LANES = 4;
-const NUM_OF_ENEMY_COLUMNS = 5;
 
-//  initialize all shared variables
-let enemySpeedMultiplier = 2;
-let isEnemySpeedReduced = false;
-let crosses = 0;
 
-//  initialize all the entities and listeners
-const htmlChooseCharPopup = document.getElementsByClassName('choose-char-popup')[0];
-const htmlGameOverPopup = document.getElementsByClassName('game-over-popup')[0];
-const htmlPlayAgainBtn = document.getElementsByClassName('play-again-btn')[0];
-const htmlScoreDisplay = document.getElementsByClassName('score-display')[0];
-const score = Score();
-const messages = Messages();
-const timeout = Timeout(AVAILABLE_TIME);
-const gems = Gems();
-const allEnemies = Array.apply(
-  null,
-  {length: NUMBER_OF_ENEMIES}).map(() => Enemy()
-);
-const player = Player();
+/* Messages class provides the feature to display messages in the canvas and
+ * is also responsible to remove then after a while.
+ */
+class Messages {
 
-htmlChooseCharPopup.addEventListener('click', e => {
-  //  once a char is selected, the engine and the timeout are initialized
-  player.setChar(e.target.value);
-  hideCharSelector();
-  Engine.init();
-  timeout.reset();
-});
-
-htmlPlayAgainBtn.addEventListener('click', init);
-
-init();
-
-function init() {
-  enemySpeedMultiplier = 2;
-  showCharSelector();
-  hideGameOverPopup();
-  score.reset();
-
-  //  Add event listener to handle the keyboard input
-  document.addEventListener('keyup', player.handleInput);
-}
-
-function setScoreDisplay() {
-  if (score.getCrosses() > 0) {
-    htmlScoreDisplay.innerText = 'You scored ' + score.getCrosses() + ' crosses';
-  } else {
-    htmlScoreDisplay.innerText = 'You loose';
+  constructor() {
+    this.messages = [];
   }
-}
 
-function showCharSelector() {
-  htmlChooseCharPopup.style.visibility = 'visible';
-}
-
-function hideCharSelector() {
-  htmlChooseCharPopup.style.visibility = 'hidden';
-}
-
-function showGameOverPopup() {
-  htmlGameOverPopup.style.visibility = 'visible';
-}
-
-function hideGameOverPopup() {
-  htmlGameOverPopup.style.visibility = 'hidden';
-}
-
-function onCrossCompleted() {
-  score.increaseCrosses();
-  messages.newMessage('AWESOME', 125, 50);
-}
-
-function gameOver() {
-  document.removeEventListener('keyup', player.handleInput);
-  showGameOverPopup();
-  setScoreDisplay();
-  timeout.stop();
-}
-
-function reduceEnemySpeed() {
-  isEnemySpeedReduced = true;
-
-  setTimeout(() => {
-    isEnemySpeedReduced = false;
-  }, 5000);
-}
-
-function addTimeToTimeout() {
-  timeout.increaseTimeout(30);
-}
-
-function Gems() {
-  const POSSIBLE_GEMS = ['Blue','Green'];
-  const MAX_DELAY = 15000;  //  Maximum waiting time until the next gem appear on the screan
-  const MIN_DELAY = 3001; // Minimum waiting time until the next gem appear on the screan
-
-  let availableGem = {};
-  let delayToNewGem = 5000;
-  let lastGemAdded = Date.now();
-
-  const randomX = () => COLUMN_WIDTH * Math.floor(Math.random() * NUM_OF_ENEMY_COLUMNS);
-  const randomY = () => HEIGHT_AJUST + LINE_HEIGHT * (Math.ceil(Math.random() * NUM_OF_ENEMY_LANES) - 1);
-  const randomGem = () => POSSIBLE_GEMS[Math.floor(Math.random() * POSSIBLE_GEMS.length)];
-  const randomInterval = () => Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY;
-
-  const newGem = () => {
-    availableGem = {
-      type: randomGem(),
-      addedTime: Date.now(),
-      x: randomX(),
-      y: randomY()
-    };
-
-    lastGemAdded = Date.now();
+  newMessage(type, x, y) {
+    this.messages.push({type, x, y, time: Date.now()});
   };
 
-  const getGemCoordinates = () => { return { x, y } = availableGem };
+  //  remove messages which are visible for more than 0.5s
+  update() {
+    let messagesToRemove = 0;
 
-  const gemCollected = () => {
-    let gemType = availableGem.type;
-    availableGem = {};
+    this.messages.forEach(msg => {
+      if (Date.now() - msg.time >  500) messagesToRemove++;
+    });
 
-    applyGemEffect(gemType);
+    this.removeOldMessages(messagesToRemove)
   };
 
-  const applyGemEffect = (gemType) => {
+  removeOldMessages(qnt) {
+    for (let i = 0; i < qnt; i++) {
+      this.messages.shift();
+    }
+  };
+
+  render() {
+    this.messages.forEach(msg => {
+      GLOBALS.ctx.drawImage(
+        Resources.get(GLOBALS.messageSprites.get(msg.type)),
+        msg.x,
+        msg.y
+      );
+    });
+  };
+}
+
+/* Gems class is responsible for create the collectible gems and place them
+ * in the canvas. It also apply some effect to the game depending on the type
+ * and if a gem is collected. If a gem is not collected, the Gem class remove
+ * it from the canvas after a while.
+ */
+class Gems {
+
+  constructor() {
+    this.availableGem = {};
+    this.delayToNewGem = 5000;
+    this.lastAddedGem = Date.now();
+  }
+
+  //  generate a random horizontal position to place the gem
+  static randomX() {
+    return GLOBALS.columnWidth * Math.floor(Math.random() * GLOBALS.numOfEnemyColumns);
+  };
+
+  //  generate a random vertical position to place the gem
+  static randomY() {
+    return GLOBALS.heightAjust + GLOBALS.lineHeight * (Math.ceil(Math.random() * GLOBALS.numOfEnemyLanes) - 1);
+  };
+
+  //  return type of gem randomly
+  static randomGem() {
+    return GLOBALS.possibleGems[Math.floor(Math.random() * GLOBALS.possibleGems.length)];
+  }
+
+  //  return a random interval in milliseconds
+  static randomInterval() {
+    return Math.random() * (GLOBALS.maxDelayToNewGem - GLOBALS.minDelayToNewGem) + GLOBALS.minDelayToNewGem;
+  };
+
+  //  apply gem effect to the game
+  static applyGemEffect(gemType) {
     switch (gemType) {
       case 'Blue':
-        reduceEnemySpeed();
+        GLOBALS.observer.publish(GLOBALS.eventTypes.BLUE_GEM_COLLECTED);
         break;
       case 'Green':
-        addTimeToTimeout();
+        GLOBALS.observer.publish(GLOBALS.eventTypes.GREEN_GEM_COLLECTED);
         break;
       default:
         break;
     }
   };
 
-  const update = () => {
-    if (availableGem.type && Date.now() - availableGem.addedTime > 3000) {
-      availableGem = {};
-      delayToNewGem = randomInterval();
-    }
+  //  add a new gem to available gem and update last added gem time
+  newGem() {
+    this.availableGem = {
+      type: Gems.randomGem(),
+      addedTime: Date.now(),
+      x: Gems.randomX(),
+      y: Gems.randomY()
+    };
 
-    if (Date.now() - lastGemAdded > delayToNewGem) newGem();
+    this.lastAddedGem = Date.now();
   };
 
-  const render = () => {
-    if (availableGem.type) {
-      ctx.drawImage(Resources.get('images/Gem ' + availableGem.type + '.png'), availableGem.x, availableGem.y);
-    }
+  getGemCoordinates() {
+    return {
+      x: this.availableGem.x,
+      y: this.availableGem.y
+    };
   };
 
-  return {
-    update,
-    render,
-    getGemCoordinates,
-    gemCollected
-  }
+  //  check type of collected gem and apply gem effect
+  gemCollected() {
+    let gemType = this.availableGem.type;
+    this.availableGem = {};
+
+    Gems.applyGemEffect(gemType);
+  };
+
+  update() {
+    if (this.availableGem.type && Date.now() - this.availableGem.addedTime > 3000) {
+      this.availableGem = {};
+      this.delayToNewGem = Gems.randomInterval();
+    }
+
+    if (Date.now() - this.lastAddedGem > this.delayToNewGem) this.newGem();
+  };
+
+  render() {
+    if (this.availableGem.type) {
+      GLOBALS.ctx.drawImage(
+        Resources.get('images/Gem ' + this.availableGem.type + '.png'),
+        this.availableGem.x,
+        this.availableGem.y
+      );
+    }
+  };
 }
 
-function Messages() {
-  const sprites = new Map([['OUCH', 'images/Ouch.png'],['AWESOME', 'images/Awesome.png']]);
-  const messages = [];
+/* Player class is responsible for all that concerns the char's moves and features.
+ * It handles the collision logic and also the player's keyboard inputs.
+ */
+class Player {
 
-  const newMessage = (type, x, y) => {
-    messages.push({type, x, y, time: Date.now()});
-  };
+  constructor() {
+    this.sprite = 'images/char-' + 'boy' + '.png';
+    this.x = 0;
+    this.y = 0;
+    this.reset();
 
-  const update = () => {
-    let messagesToRemove = 0;
+    this.handleInput = this.handleInput.bind(this);
+  }
 
-    messages.forEach(msg => {
-      if (Date.now() - msg.time >  500) messagesToRemove++;
-    });
+  getX() {
+    return this.x;
+  }
 
-    removeOldMessages(messagesToRemove)
-  };
+  getY() {
+    return this.y;
+  }
 
-  const removeOldMessages = (qnt) => {
-    for (let i = 0; i < qnt; i++) {
-      messages.shift();
+  update() {
+    if (this.y <= 0) {
+      this.reset();
+      GLOBALS.observer.publish(GLOBALS.eventTypes.CROSS_COMPLETED);
     }
   };
 
-  const render = () => {
-    messages.forEach(msg => {
-      ctx.drawImage(Resources.get(sprites.get(msg.type)), msg.x, msg.y);
-    });
+  setChar(char) {
+    this.sprite = 'images/char-' + char + '.png';
   };
 
-  return {
-    newMessage,
-    update,
-    render
+  render() {
+    GLOBALS.ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+  };
+
+  moveLeft() {
+    if (this.x - GLOBALS.columnWidth >= 0) this.x -= GLOBALS.columnWidth;
+  };
+
+  moveRight() {
+    if (this.x + GLOBALS.columnWidth <GLOBALS.columnWidth * GLOBALS.numOfEnemyColumns)
+      this.x += GLOBALS.columnWidth;
+  };
+
+  moveUp() {
+    this.y -= GLOBALS.lineHeight;
+  };
+
+  moveDown() {
+    if (this.y + GLOBALS.lineHeight < GLOBALS.heightAjust + GLOBALS.lineHeight * (GLOBALS.numOfEnemyColumns + 1))
+      this.y += GLOBALS.lineHeight;
+  };
+
+  handleInput(evt) {
+    switch(evt.code) {
+      case 'ArrowLeft':
+        this.moveLeft();
+        break;
+      case 'ArrowRight':
+        this.moveRight();
+        break;
+      case 'ArrowUp':
+        this.moveUp();
+        break;
+      case 'ArrowDown':
+        this.moveDown();
+        break;
+      default:
+        break;
+    }
+  };
+
+  /*
+   * Return char's final x position taking into account
+   * the empty space between the border of the png canvas and the char
+   */
+  getCorrectedFinalX() {
+    return this.x + GLOBALS.columnWidth - GLOBALS.charWidthAjust;
   }
+
+  /*
+   * Return char's initial x position taking into account
+   * the empty space between the border of the png canvas and the char
+   */
+  getCorrectedInitialX() {
+    return this.x + GLOBALS.charWidthAjust;
+  }
+
+  checkCollision(entity) {
+    if (entity.getY() !== this.y) {
+      return;
+    }
+
+    //  if the char is between enemy boundaries, there is collision
+    let isCharInsideEntity = this.getCorrectedFinalX() > entity.getX() + entity.getWidth()
+      && this.getCorrectedInitialX() < entity.getX() + entity.getWidth();
+
+    //  if char's right side is inside enemy boundaries, there is collision
+    let isRightSideCollided = this.getCorrectedInitialX() < entity.getX() && this.getCorrectedFinalX() > entity.getX();
+
+    //  if char's left side is inside enemy boundaries, there is collision
+    let isLeftSideCollided = this.getCorrectedInitialX() > entity.getX()
+      && this.getCorrectedFinalX() < entity.getX() + entity.getWidth();
+
+    if (isCharInsideEntity || isRightSideCollided || isLeftSideCollided) return true
+  };
+
+  reset() {
+    this.y = GLOBALS.heightAjust + GLOBALS.lineHeight * 4;
+    this.x = GLOBALS.columnWidth * 2;
+  };
 }
 
-function Timeout(availableTime) {
-  let timeOut;
-  let remainingTime = availableTime;
+/* Score class is responsible for track the number of crosses that player
+ * completed. It triggers a game over event if the score gets lower than 0.
+ */
+class Score {
 
-  const init = () => {
-    timeOut = setInterval(decreaseTimeout, 1000);
-  };
+  constructor() {
+    this.crosses = 0;
+  }
 
-  const stop = () => {
-    clearInterval(timeOut);
-  };
-
-  const reset = () => {
-    remainingTime = availableTime;
-    init();
-  };
-
-  const decreaseTimeout = () => {
-    remainingTime--;
-    if (remainingTime === 0) {
-      stop();
-      gameOver();
+  increaseCrosses() {
+    this.crosses++;
+    if (!GLOBALS.isEnemySpeedReduced) {
+      GLOBALS.enemySpeedMultiplier += 0.5;
     }
   };
 
-  const increaseTimeout = (seconds) => {
-    remainingTime += seconds;
+  decreaseCrosses() {
+    if (this.crosses - 1 < 0) {
+      GLOBALS.observer.publish(GLOBALS.eventTypes.NEGATIVE_SCORE_REACHED);
+      return;
+    }
+    else this.crosses--;
+    if (!GLOBALS.isEnemySpeedReduced) {
+      GLOBALS.enemySpeedMultiplier -= 0.5;
+    }
   };
 
-  const render = () => {
-    ctx.font = "normal 20px verdana, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText(getFormattedTime() + "", 20, 20);
+  render() {
+    GLOBALS.ctx.font = "normal 20px verdana, sans-serif";
+    GLOBALS.ctx.fillStyle = '#666666';
+    GLOBALS.ctx.fillText('score: ' + this.crosses, 400, 20);
   };
 
-  const getFormattedTime = () => {
-    let min = Math.floor(remainingTime/60);
-    let sec = remainingTime%60;
+  getScore() {
+    return this.crosses;
+  }
+
+  reset() {
+    this.crosses = 0;
+  };
+}
+
+/* Enemy class is responsible for render and update the enemies in the canvas.
+ */
+class Enemy {
+  constructor() {
+    this.x = 0;
+    this.y = 0;
+    this.speed = 0;
+    this.init();
+  }
+
+  getX() {
+    return this.x;
+  }
+
+  getY() {
+    return this.y;
+  }
+
+  getWidth() {
+    return GLOBALS.columnWidth;
+  }
+
+  //  Place the enemy at a random row and in a random column
+  randomPosition(initialPosition = false) {
+    if (initialPosition) this.x = GLOBALS.columnWidth * Math.floor(Math.random() * 5);
+    else this.x = -GLOBALS.columnWidth * Math.ceil(Math.random() * 3);
+    this.y = GLOBALS.heightAjust + GLOBALS.lineHeight * (Math.ceil(Math.random()*4) - 1);
+  };
+
+  //  Set a random speed based on the number of completed crosses
+  randomSpeed() {
+    let newSpeed = Math.random() * GLOBALS.enemySpeedMultiplier;
+    this.speed = newSpeed < 1 ? 1 : newSpeed;
+  };
+
+  reset() {
+    this.randomPosition();
+    this.randomSpeed();
+  };
+
+  init() {
+    this.randomPosition(true);
+    this.randomSpeed();
+  };
+
+  update() {
+    this.x += (GLOBALS.isEnemySpeedReduced ? 0.5 : this.speed);
+    if (this.x > 6 * 101) this.reset();
+  };
+
+  render() {
+    GLOBALS.ctx.drawImage(Resources.get(GLOBALS.enemySprite), this.x, this.y);
+  };
+}
+
+/* Timeout class tracks down the available time for the player. It triggers an
+ * game over event if timeout reaches 0.
+ */
+class Timeout {
+
+  constructor() {
+    this.timeOut = {};
+    this.remainingTime = GLOBALS.availableTime;
+
+    this.decreaseTimeout = this.decreaseTimeout.bind(this);
+  }
+
+  init() {
+    this.timeOut = setInterval(this.decreaseTimeout, 1000);
+  };
+
+  stop() {
+    clearInterval(this.timeOut);
+  };
+
+  reset() {
+    this.remainingTime = GLOBALS.availableTime;
+    this.init();
+  };
+
+  decreaseTimeout() {
+    this.remainingTime--;
+    if (this.remainingTime === 0) {
+      this.stop();
+      GLOBALS.observer.publish(GLOBALS.eventTypes.TIMEOUT_REACH_ZERO);
+    }
+  };
+
+  increaseTimeout(seconds) {
+    this.remainingTime += seconds;
+  };
+
+  render() {
+    GLOBALS.ctx.font = "normal 20px verdana, sans-serif";
+    GLOBALS.ctx.fillStyle = "#666";
+    GLOBALS.ctx.fillText(this.getFormattedTime() + "", 20, 20);
+  };
+
+  //  return the seconds remaining time in the mm:ss format
+  getFormattedTime() {
+    let min = Math.floor(this.remainingTime/60);
+    let sec = this.remainingTime%60;
 
     min = min >= 10 ? min : '0' + min;
     sec = sec >= 10 ? sec : '0' + sec;
 
     return min + ":" + sec;
   };
-
-  return {
-    init,
-    render,
-    increaseTimeout,
-    stop,
-    reset
-  }
 }
 
-function Score() {
-  let crosses = 0;
+/* Initialize the app in an IIFE in order to avoid variables and function
+ * to be called by global scope
+ */
+(function() {
 
-  const increaseCrosses = () => {
-    crosses++;
-    if (!isEnemySpeedReduced) {
-      enemySpeedMultiplier += 0.5;
-    }
-  };
+  //  Assign all HTML Nodes that need to be accessed to constants
+  const htmlChooseCharPopup = document.getElementsByClassName('choose-char-popup')[0];
+  const htmlGameOverPopup = document.getElementsByClassName('game-over-popup')[0];
+  const htmlPlayAgainBtn = document.getElementsByClassName('play-again-btn')[0];
+  const htmlScoreDisplay = document.getElementsByClassName('score-display')[0];
 
-  const decreaseCrosses = () => {
-    if (crosses - 1 < 0) {
-      gameOver();
-      return;
-    }
-    else crosses--;
-    if (!isEnemySpeedReduced) {
-      enemySpeedMultiplier -= 0.5;
-    }
-  };
+  //  Instantiates needed objects and assign to constants
+  const score = new Score();
+  const messages = new Messages();
+  const timeout = new Timeout();
+  const gems = new Gems();
+  const allEnemies = Array.apply(null, {length: GLOBALS.numberOfEnemies}).map(() => new Enemy());
+  const player = new Player();
 
-  const update = () => {};
-
-  const render = () => {
-    ctx.font = "normal 20px verdana, sans-serif";
-    ctx.fillStyle = '#666666';
-    ctx.fillText('score: ' + crosses, 400, 20);
-  };
-
-  const getCrosses = () => crosses;
-
-  const reset = () => {
-    crosses = 0;
-  };
-
-  return {
-    render,
-    decreaseCrosses,
-    update,
-    increaseCrosses,
-    getCrosses,
-    reset
-  }
-}
-
-function Enemy() {
-  const sprite = 'images/enemy-bug.png';
-  let x;
-  let y;
-  let speed;
-  let width = 101;
-
-  const getX = () => x;
-  const getY = () => y;
-  const getWidth = () => width;
-
-  //  Place the enemy at a random row and in a random column
-  const randomPosition = (initialPosition = false) => {
-    if (initialPosition) x = COLUMN_WIDTH * Math.floor(Math.random() * 5);
-    else x = -COLUMN_WIDTH * Math.ceil(Math.random() * 3);
-    y = HEIGHT_AJUST + LINE_HEIGHT * (Math.ceil(Math.random()*4) - 1);
-  };
-
-  //  Set a random speed based on the number of completed crosses
-  const randomSpeed = () => {
-    let newSpeed = Math.random() * enemySpeedMultiplier;
-    speed = newSpeed < 1 ? 1 : newSpeed;
-  };
-
-  const reset = () => {
-    randomPosition();
-    randomSpeed();
-  };
-
+  /*
+   * Reset enemy speed multiplier, display char selection menu, reset score
+   * and hide the game over popup, if it is visible
+   */
   const init = () => {
-    randomPosition(true);
-    randomSpeed();
+    GLOBALS.enemySpeedMultiplier = 2;
+    showCharSelector();
+    hideGameOverPopup();
+    score.reset();
+
+    document.addEventListener('keyup', player.handleInput);
   };
 
-  const update = (dt) => {
-    if (dt < 0.01) return;
-    x += (isEnemySpeedReduced ? 0.5 : speed);
-    if (x > 6 * 101) reset();
+  /*
+   * Set the score message in the popup that appear in the end of the game.
+   * If the player have a score greater than 0, this number is displayed,
+   * otherwise the 'you loose' message appears
+   */
+  const setScoreDisplay = () => {
+    if (score.getScore() > 0) {
+      htmlScoreDisplay.innerText = 'You scored ' + score.getScore() + ' crosses';
+    } else {
+      htmlScoreDisplay.innerText = 'You loose';
+    }
   };
 
+  const showCharSelector = () => {
+    htmlChooseCharPopup.style.visibility = 'visible';
+  };
+
+  const hideCharSelector = () => {
+    htmlChooseCharPopup.style.visibility = 'hidden';
+  };
+
+  const showGameOverPopup = () => {
+    htmlGameOverPopup.style.visibility = 'visible';
+  };
+
+  const hideGameOverPopup = () => {
+    htmlGameOverPopup.style.visibility = 'hidden';
+  };
+
+//  increase score by one and displays the 'awesome' message
+  const crossCompleted = () => {
+    score.increaseCrosses();
+    messages.newMessage('AWESOME', 125, 50);
+  };
+
+//  stop the game and ask if user wants to play again
+  const gameOver = () => {
+    document.removeEventListener('keyup', player.handleInput);
+    showGameOverPopup();
+    setScoreDisplay();
+    timeout.stop();
+  };
+
+//  Reduce enemies speed for 5 seconds
+  const reduceEnemySpeed = () => {
+    GLOBALS.isEnemySpeedReduced = true;
+
+    setTimeout(() => {
+      GLOBALS.isEnemySpeedReduced = false;
+    }, 5000);
+  };
+
+//  Increase 30 seconds to the timeout
+  const addTimeToTimeout = () => {
+    timeout.increaseTimeout(10);
+  };
+
+  /*
+   * Display message warning the player about the collision, put char at initial position
+   * and decrease score by one
+   */
+  const handleCollision = () => {
+    messages.newMessage('OUCH', player.getX(), player.getY());
+    player.reset();
+    score.decreaseCrosses();
+  };
+
+//  Iterates over all enemies and check if their collided with char
+  const checkCollisions = () => {
+    allEnemies.forEach(enemy => {
+      if (player.checkCollision(enemy)) {
+        handleCollision();
+      }
+    });
+  };
+
+  /* Check if there was collision between the player and the available gem
+   * if there was a collision, the gem effect is applied
+   */
+  const checkGemCollection = () => {
+    let {x, y} = gems.getGemCoordinates();
+
+    if (y !== player.getY()) return;
+    if (x === player.getX()) {
+      gems.gemCollected();
+    }
+  };
+
+//  Check for collisions, gem collection and update all entities
+  const update = () => {
+    checkGemCollection();
+    checkCollisions();
+    player.update();
+    allEnemies.forEach(enemy => enemy.update());
+    gems.update();
+    messages.update();
+  };
+
+//  Render all entities
   const render = () => {
-    ctx.drawImage(Resources.get(sprite), x, y);
+    gems.render();
+    player.render();
+    allEnemies.forEach(enemy => enemy.render());
+    messages.render();
+    score.render();
+    timeout.render();
   };
+
+  /*
+   * All game events are handled by a unique observer.
+   * The event types are listed in the GLOBALS.eventTypes object
+   */
+  GLOBALS.observer = new GameObserver();
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CROSS_COMPLETED,
+    crossCompleted
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.NEGATIVE_SCORE_REACHED,
+    gameOver
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.BLUE_GEM_COLLECTED,
+    reduceEnemySpeed
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.GREEN_GEM_COLLECTED,
+    addTimeToTimeout
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CALL_TO_UPDATE,
+    update
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CALL_TO_RENDER,
+    render
+  );
+
+  htmlChooseCharPopup.addEventListener('click', e => {
+    //  Once a char is selected, the engine and the timeout are initialized
+    player.setChar(e.target.value);
+    hideCharSelector();
+    timeout.reset();
+  });
+
+  htmlPlayAgainBtn.addEventListener('click', init);
 
   init();
-
-  return {
-    render,
-    update,
-    getX,
-    getY,
-    getWidth
-  }
-}
-
-function Player() {
-  let sprite = null;
-  let x;
-  let y;
-  const width = COLUMN_WIDTH;
-  const WIDTH_AJUST = 30; //  fix the empty space between the char and the png canvas border
-
-  const getX = () => x;
-  const getY = () => y;
-
-  const update = () => {
-    if (y <= 0) {
-      reset();
-      onCrossCompleted();
-    }
-  };
-
-  const setChar = (char) => {
-    sprite = 'images/char-' + char + '.png';
-  };
-
-  const render = () => {
-    ctx.drawImage(Resources.get(sprite), x, y);
-  };
-
-  const moveLeft = () => {
-    if (x - COLUMN_WIDTH >= 0) x -= COLUMN_WIDTH;
-  };
-
-  const moveRight = () => {
-    if (x + COLUMN_WIDTH < COLUMN_WIDTH * NUM_OF_ENEMY_COLUMNS) x += COLUMN_WIDTH;
-  };
-
-  const moveUp = () => {
-    y -= LINE_HEIGHT;
-  };
-
-  const moveDown = () => {
-    if (y + LINE_HEIGHT < HEIGHT_AJUST + LINE_HEIGHT * (NUM_OF_ENEMY_LANES + 1)) y += LINE_HEIGHT;
-  };
-
-  const handleInput = (evt) => {
-    switch(evt.code) {
-      case 'ArrowLeft':
-        moveLeft();
-        break;
-      case 'ArrowRight':
-        moveRight();
-        break;
-      case 'ArrowUp':
-        moveUp();
-        break;
-      case 'ArrowDown':
-        moveDown();
-        break;
-      default:
-        break;
-    }
-  };
-
-  const checkCollision = (entity) => {
-    if ((x + width - WIDTH_AJUST > entity.getX() + entity.getWidth() && x + WIDTH_AJUST < entity.getX() + entity.getWidth())
-      || (x + WIDTH_AJUST < entity.getX() && x + width - WIDTH_AJUST > entity.getX())
-      || (x + WIDTH_AJUST > entity.getX() && x + width - WIDTH_AJUST < entity.getX() + entity.getWidth()))
-      return true
-  };
-
-  const reset = () => {
-    y = HEIGHT_AJUST + LINE_HEIGHT * 4;
-    x = COLUMN_WIDTH * 2;
-  };
-
-  reset();
-
-  return {
-    render,
-    update,
-    handleInput,
-    reset,
-    setChar,
-    checkCollision,
-    getX,
-    getY
-  }
-}
-
-
+  
+})();
 
 
 
