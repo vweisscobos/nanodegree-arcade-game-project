@@ -563,4 +563,40 @@ class Timeout {
     timeout.render();
   };
 
+  /*
+   * All game events are handled by a unique observer.
+   * The event types are listed in the GLOBALS.eventTypes object
+   */
+  GLOBALS.observer = new GameObserver();
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CROSS_COMPLETED,
+    crossCompleted
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.NEGATIVE_SCORE_REACHED,
+    gameOver
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.BLUE_GEM_COLLECTED,
+    reduceEnemySpeed
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.GREEN_GEM_COLLECTED,
+    addTimeToTimeout
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CALL_TO_UPDATE,
+    update
+  );
+
+  GLOBALS.observer.subscribe(
+    GLOBALS.eventTypes.CALL_TO_RENDER,
+    render
+  );
+
 })();
