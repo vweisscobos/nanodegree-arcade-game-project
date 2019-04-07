@@ -367,3 +367,58 @@ class Enemy {
     GLOBALS.ctx.drawImage(Resources.get(GLOBALS.enemySprite), this.x, this.y);
   };
 }
+
+/* Timeout class tracks down the available time for the player. It triggers an
+ * game over event if timeout reaches 0.
+ */
+class Timeout {
+
+  constructor() {
+    this.timeOut = {};
+    this.remainingTime = GLOBALS.availableTime;
+
+    this.decreaseTimeout = this.decreaseTimeout.bind(this);
+  }
+
+  init() {
+    this.timeOut = setInterval(this.decreaseTimeout, 1000);
+  };
+
+  stop() {
+    clearInterval(this.timeOut);
+  };
+
+  reset() {
+    this.remainingTime = GLOBALS.availableTime;
+    this.init();
+  };
+
+  decreaseTimeout() {
+    this.remainingTime--;
+    if (this.remainingTime === 0) {
+      this.stop();
+      GLOBALS.observer.publish(GLOBALS.eventTypes.TIMEOUT_REACH_ZERO);
+    }
+  };
+
+  increaseTimeout(seconds) {
+    this.remainingTime += seconds;
+  };
+
+  render() {
+    GLOBALS.ctx.font = "normal 20px verdana, sans-serif";
+    GLOBALS.ctx.fillStyle = "#666";
+    GLOBALS.ctx.fillText(this.getFormattedTime() + "", 20, 20);
+  };
+
+  //  return the seconds remaining time in the mm:ss format
+  getFormattedTime() {
+    let min = Math.floor(this.remainingTime/60);
+    let sec = this.remainingTime%60;
+
+    min = min >= 10 ? min : '0' + min;
+    sec = sec >= 10 ? sec : '0' + sec;
+
+    return min + ":" + sec;
+  };
+}
