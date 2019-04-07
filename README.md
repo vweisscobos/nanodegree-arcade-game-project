@@ -20,7 +20,7 @@ during the given time and avoid to collide with the enemies.
 - Every time you get hit by an enemy, one cross you decreased from your score
 - If your score is zero and you get hit, you loose the game
 - If the timeout reaches zero, the game ends  
-- The player can collect gems to obtain some advantages. The green gem adds 30 seconds
+- The player can collect gems to obtain some advantages. The green gem adds 10 seconds
 to the timeout and the blue gem slows down the enemies for a while 
 
 ## Dependencies
