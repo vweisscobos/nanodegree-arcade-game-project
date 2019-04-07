@@ -312,3 +312,58 @@ class Score {
     this.crosses = 0;
   };
 }
+
+/* Enemy class is responsible for render and update the enemies in the canvas.
+ */
+class Enemy {
+  constructor() {
+    this.x = 0;
+    this.y = 0;
+    this.speed = 0;
+    this.init();
+  }
+
+  getX() {
+    return this.x;
+  }
+
+  getY() {
+    return this.y;
+  }
+
+  getWidth() {
+    return GLOBALS.columnWidth;
+  }
+
+  //  Place the enemy at a random row and in a random column
+  randomPosition(initialPosition = false) {
+    if (initialPosition) this.x = GLOBALS.columnWidth * Math.floor(Math.random() * 5);
+    else this.x = -GLOBALS.columnWidth * Math.ceil(Math.random() * 3);
+    this.y = GLOBALS.heightAjust + GLOBALS.lineHeight * (Math.ceil(Math.random()*4) - 1);
+  };
+
+  //  Set a random speed based on the number of completed crosses
+  randomSpeed() {
+    let newSpeed = Math.random() * GLOBALS.enemySpeedMultiplier;
+    this.speed = newSpeed < 1 ? 1 : newSpeed;
+  };
+
+  reset() {
+    this.randomPosition();
+    this.randomSpeed();
+  };
+
+  init() {
+    this.randomPosition(true);
+    this.randomSpeed();
+  };
+
+  update() {
+    this.x += (GLOBALS.isEnemySpeedReduced ? 0.5 : this.speed);
+    if (this.x > 6 * 101) this.reset();
+  };
+
+  render() {
+    GLOBALS.ctx.drawImage(Resources.get(GLOBALS.enemySprite), this.x, this.y);
+  };
+}
