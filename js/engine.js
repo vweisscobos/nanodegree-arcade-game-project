@@ -13,7 +13,7 @@
  * writing app.js a little simpler to work with.
  */
 
-var Engine = (function(global) {
+(function(global) {
     /* Predefine the variables we'll be using within this scope,
      * create the canvas element, grab the 2D context for that canvas
      * set the canvas element's height/width and add it to the DOM.
@@ -21,8 +21,9 @@ var Engine = (function(global) {
     var doc = global.document,
         win = global.window,
         canvas = doc.createElement('canvas'),
-        ctx = canvas.getContext('2d'),
         lastTime;
+
+    GLOBALS.ctx = canvas.getContext('2d');
 
     canvas.width = 505;
     canvas.height = 606;
@@ -78,38 +79,9 @@ var Engine = (function(global) {
      * on the entities themselves within your app.js file).
      */
     function update(dt) {
-        updateEntities(dt);
-        updateScore();
-        checkCollisions();
-        checkGemCollection();
-        updateCollisions();
-        updateGems();
-    }
+      if (dt < 0.01) return;
 
-    /* This is called by the update function and loops through all of the
-     * objects within your allEnemies array as defined in app.js and calls
-     * their update() methods. It will then call the update function for your
-     * player object. These update methods should focus purely on updating
-     * the data/properties related to the object. Do your drawing in your
-     * render methods.
-     */
-    function updateEntities(dt) {
-        allEnemies.forEach(function(enemy) {
-            enemy.update(dt);
-        });
-        player.update();
-    }
-
-    function updateScore() {
-      score.update();
-    }
-
-    function updateCollisions() {
-      messages.update();
-    }
-
-    function updateGems() {
-      gems.update();
+      GLOBALS.observer.publish(GLOBALS.eventTypes.CALL_TO_UPDATE);
     }
 
     /* This function initially draws the "game level", it will then call
@@ -123,19 +95,19 @@ var Engine = (function(global) {
          * for that particular row of the game level.
          */
         var rowImages = [
-                'images/water-block.png',   // Top row is water
-                'images/stone-block.png',   // Row 1 of 3 of stone
-                'images/stone-block.png',   // Row 2 of 3 of stone
-                'images/stone-block.png',   // Row 3 of 3 of stone
-                'images/stone-block.png',   // Row 1 of 2 of grass
-                'images/grass-block.png'    // Row 2 of 2 of grass
+              'images/water-block.png',   // Top row is water
+              'images/stone-block.png',   // Row 1 of 3 of stone
+              'images/stone-block.png',   // Row 2 of 3 of stone
+              'images/stone-block.png',   // Row 3 of 3 of stone
+              'images/stone-block.png',   // Row 1 of 2 of grass
+              'images/grass-block.png'    // Row 2 of 2 of grass
             ],
             numRows = 6,
             numCols = 5,
             row, col;
 
         // Before drawing, clear existing canvas
-        ctx.clearRect(0,0,canvas.width,canvas.height);
+        GLOBALS.ctx.clearRect(0,0,canvas.width,canvas.height);
 
         /* Loop through the number of rows and columns we've defined above
          * and, using the rowImages array, draw the correct image for that
@@ -150,67 +122,11 @@ var Engine = (function(global) {
                  * so that we get the benefits of caching these images, since
                  * we're using them over and over.
                  */
-                ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
+                GLOBALS.ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
             }
         }
 
-        renderGems();
-        renderEntities();
-        renderScore();
-        renderMessages();
-        renderTimeout();
-    }
-
-    /* This function is called by the render function and is called on each game
-     * tick. Its purpose is to then call the render functions you have defined
-     * on your enemy and player entities within app.js
-     */
-    function renderEntities() {
-        /* Loop through all of the objects within the allEnemies array and call
-         * the render function you have defined.
-         */
-        allEnemies.forEach(function(enemy) {
-            enemy.render();
-        });
-
-        player.render();
-    }
-
-    function renderScore() {
-      score.render();
-    }
-
-    function renderTimeout() {
-      timeout.render();
-    }
-
-    function renderMessages() {
-      messages.render();
-    }
-
-    function renderGems() {
-      gems.render();
-    }
-
-    function checkCollisions() {
-      allEnemies.forEach(enemy => {
-        if (enemy.getY() !== player.getY()) return;
-
-        if (player.checkCollision(enemy)) {
-          messages.newMessage('OUCH', player.getX(), player.getY());
-          player.reset();
-          score.decreaseCrosses();
-        }
-      });
-    }
-
-    function checkGemCollection() {
-      let {x, y} = gems.getGemCoordinates();
-
-      if (y !== player.getY()) return;
-      if (x === player.getX()) {
-        gems.gemCollected();
-      }
+        GLOBALS.observer.publish(GLOBALS.eventTypes.CALL_TO_RENDER);
     }
 
     /* This function does nothing but it could have been a good place to
@@ -244,13 +160,4 @@ var Engine = (function(global) {
     ]);
     Resources.onReady(init);
 
-    /* Assign the canvas' context object to the global variable (the window
-     * object when run in a browser) so that developers can use it more easily
-     * from within their app.js files.
-     */
-    global.ctx = ctx;
-
-    return {
-      init
-    }
 })(this);
