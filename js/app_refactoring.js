@@ -270,3 +270,45 @@ class Player {
     this.x = GLOBALS.columnWidth * 2;
   };
 }
+
+/* Score class is responsible for track the number of crosses that player
+ * completed. It triggers a game over event if the score gets lower than 0.
+ */
+class Score {
+
+  constructor() {
+    this.crosses = 0;
+  }
+
+  increaseCrosses() {
+    this.crosses++;
+    if (!GLOBALS.isEnemySpeedReduced) {
+      GLOBALS.enemySpeedMultiplier += 0.5;
+    }
+  };
+
+  decreaseCrosses() {
+    if (this.crosses - 1 < 0) {
+      GLOBALS.observer.publish(GLOBALS.eventTypes.NEGATIVE_SCORE_REACHED);
+      return;
+    }
+    else this.crosses--;
+    if (!GLOBALS.isEnemySpeedReduced) {
+      GLOBALS.enemySpeedMultiplier -= 0.5;
+    }
+  };
+
+  render() {
+    GLOBALS.ctx.font = "normal 20px verdana, sans-serif";
+    GLOBALS.ctx.fillStyle = '#666666';
+    GLOBALS.ctx.fillText('score: ' + this.crosses, 400, 20);
+  };
+
+  getScore() {
+    return this.crosses;
+  }
+
+  reset() {
+    this.crosses = 0;
+  };
+}
