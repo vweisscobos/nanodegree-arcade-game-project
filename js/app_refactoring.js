@@ -442,4 +442,17 @@ class Timeout {
   const allEnemies = Array.apply(null, {length: GLOBALS.numberOfEnemies}).map(() => new Enemy());
   const player = new Player();
 
+  /*
+   * Reset enemy speed multiplier, display char selection menu, reset score
+   * and hide the game over popup, if it is visible
+   */
+  const init = () => {
+    GLOBALS.enemySpeedMultiplier = 2;
+    showCharSelector();
+    hideGameOverPopup();
+    score.reset();
+
+    document.addEventListener('keyup', player.handleInput);
+  };
+
 })();
