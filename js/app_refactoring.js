@@ -422,3 +422,24 @@ class Timeout {
     return min + ":" + sec;
   };
 }
+
+/* Initialize the app in an IIFE in order to avoid variables and function
+ * to be called by global scope
+ */
+(function() {
+
+  //  Assign all HTML Nodes that need to be accessed to constants
+  const htmlChooseCharPopup = document.getElementsByClassName('choose-char-popup')[0];
+  const htmlGameOverPopup = document.getElementsByClassName('game-over-popup')[0];
+  const htmlPlayAgainBtn = document.getElementsByClassName('play-again-btn')[0];
+  const htmlScoreDisplay = document.getElementsByClassName('score-display')[0];
+
+  //  Instantiates needed objects and assign to constants
+  const score = new Score();
+  const messages = new Messages();
+  const timeout = new Timeout();
+  const gems = new Gems();
+  const allEnemies = Array.apply(null, {length: GLOBALS.numberOfEnemies}).map(() => new Enemy());
+  const player = new Player();
+
+})();
