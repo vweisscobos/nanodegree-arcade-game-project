@@ -1,4 +1,25 @@
+/*
+ * An observer to centralize the handling of game events
+ */
+class GameObserver {
+  constructor() {
+    this.subscribers = [];
+  }
 
+  publish(event, data) {
+    this.subscribers.filter(subs => {
+      return subs[0] === event;
+    }).forEach(subs => {
+      subs[1](data);
+    });
+  }
+
+  subscribe(event, func) {
+    if (typeof event !== 'string') return;
+
+    this.subscribers.push([event, func]);
+  }
+}
 
 /* Messages class provides the feature to display messages in the canvas and
  * is also responsible to remove then after a while.
@@ -578,8 +599,10 @@ class Timeout {
     render
   );
 
+  /*  When char is selected, the char is changed in the player class,
+   *  the char menu is hidden, and the timeout resets.
+   */
   htmlChooseCharPopup.addEventListener('click', e => {
-    //  Once a char is selected, the engine and the timeout are initialized
     player.setChar(e.target.value);
     hideCharSelector();
     timeout.reset();
@@ -588,8 +611,5 @@ class Timeout {
   htmlPlayAgainBtn.addEventListener('click', init);
 
   init();
-  
+
 })();
-
-
-
