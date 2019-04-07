@@ -610,4 +610,6 @@ class Timeout {
 
   htmlPlayAgainBtn.addEventListener('click', init);
 
+  init();
+
 })();
